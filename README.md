@@ -120,7 +120,6 @@ docs/
 litellm-config.yaml
 ```
 
-##Screenshots
 
 ## 🖼️ Screenshots
 
