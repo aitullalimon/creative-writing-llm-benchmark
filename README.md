@@ -58,19 +58,36 @@ docker-compose.yml   Optional container setup
 ## Architecture Overview
 
 ```text
-  User Prompt
-   ↓
-  /api/benchmark
-   ↓
-  LLM Outputs (via LiteLLM)
-   ↓
-  Judge Model (LLM-as-a-Judge)
-   ↓
-  Theme Coherence Score (0–10)
-   ↓
-  Persistent Run History
-   ↓
-  Leaderboard + Visual Analytics
+┌────────────────────────┐
+│        Frontend        │
+│   Next.js + React UI   │
+└───────────┬────────────┘
+            │
+            ▼
+┌────────────────────────┐
+│     API Routes         │
+│  /api/benchmark        │
+│  /api/config-models    │
+│  /api/model-metadata   │
+└───────────┬────────────┘
+            │
+            ▼
+┌────────────────────────┐
+│   LLM-as-a-Judge       │
+│  Theme Coherence Eval  │
+└───────────┬────────────┘
+            │
+            ▼
+┌────────────────────────┐
+│        LiteLLM         │
+│  Multi-model routing   │
+└───────────┬────────────┘
+            │
+            ▼
+┌────────────────────────┐
+│  OpenAI / Anthropic    │
+│  Other LLM Providers   │
+└────────────────────────┘
 ```
 ---
 
@@ -105,6 +122,8 @@ litellm-config.yaml
 
 ##Screenshots
 
+## 🖼️ Screenshots
+
 ### UI Overview
 ![UI Overview](docs/screenshots/01_ui_overview.png)
 
@@ -115,10 +134,11 @@ litellm-config.yaml
 ![Single Model Run](docs/screenshots/03_single_model_run.png)
 
 ### Top Models per Task
-![Top Models](docs/screenshots/04_Top_models_per_tasks.png)
+![Top Models](docs/screenshots/04%20Top%20models%20per%20tasks.png)
 
 ### Theme Coherence Over Runs
-![Theme Coherence](docs/screenshots/05_theme_coherence_over_runs_and_model_comparison.png)
+![Theme Coherence](docs/screenshots/05%20Theme%20Coherence%20over%20Runs%20%26%20Model%20comparison.png)
+
 
 
 
