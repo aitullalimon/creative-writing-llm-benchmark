@@ -1,0 +1,17 @@
+services:
+  litellm:
+    image: ghcr.io/berriai/litellm:latest
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./litellm-config.yaml:/app/litellm-config.yaml:ro
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+    command:
+      - litellm
+      - --config
+      - /app/litellm-config.yaml
+      - --port
+      - "4000"

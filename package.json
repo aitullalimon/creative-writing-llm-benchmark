@@ -1,0 +1,23 @@
+{
+    "name": "joshua-benchmark",
+    "private": true,
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start"
+    },
+    "dependencies": {
+        "chart.js": "^4.5.1",
+        "js-yaml": "^4.1.1",
+        "next": "14.2.5",
+        "react": "^18.2.0",
+        "react-chartjs-2": "^5.3.1",
+        "react-dom": "^18.2.0",
+        "yaml": "^2.8.2"
+    },
+    "devDependencies": {
+        "@types/node": "25.0.8",
+        "@types/react": "19.2.8",
+        "typescript": "5.9.3"
+    }
+}

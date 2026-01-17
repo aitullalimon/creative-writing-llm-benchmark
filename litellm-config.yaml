@@ -1,0 +1,48 @@
+model_list:
+  - model_name: openai/gpt-4o-mini
+    litellm_params:
+      model: openai/gpt-4o-mini
+
+  - model_name: openai/gpt-4.1-mini
+    litellm_params:
+      model: openai/gpt-4.1-mini
+
+# Add model metadata here so the UI can show "Context" + "$/1M"
+model_info:
+  openai/gpt-4o-mini:
+    max_input_tokens: 128000
+    input_cost_per_token: 0.00000015
+    output_cost_per_token: 0.00000060
+
+  openai/gpt-4.1-mini:
+    max_input_tokens: 128000
+    input_cost_per_token: 0.00000030
+    output_cost_per_token: 0.00000120
+
+
+# DEMO metadata for UI (pricing/context/speed/latency)
+# (Not used by LiteLLM itself — only your Next.js UI via /api/config-models)
+model_info:
+  openai/gpt-4o-mini:
+    context: 128k
+    input_cost: 0.15
+    output_cost: 0.6
+    speed: 250
+    latency: 0.9
+
+  openai/gpt-4.1-mini:
+    context: 128k
+    input_cost: 0.3
+    output_cost: 1.2
+    speed: 210
+    latency: 1.1
+
+
+  # Optional future models (safe to keep commented)
+  # - model_name: anthropic/claude-3-5-sonnet
+  #   litellm_params:
+  #     model: anthropic/claude-3-5-sonnet
+  #   model_info:
+  #     max_input_tokens: 200000
+  #     input_cost_per_token: 0.000003
+  #     output_cost_per_token: 0.000015

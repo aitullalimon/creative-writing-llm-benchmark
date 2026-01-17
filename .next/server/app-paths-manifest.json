@@ -1,0 +1,6 @@
+{
+  "/api/config-models/route": "app/api/config-models/route.js",
+  "/leaderboard/page": "app/leaderboard/page.js",
+  "/api/benchmark/route": "app/api/benchmark/route.js",
+  "/page": "app/page.js"
+}

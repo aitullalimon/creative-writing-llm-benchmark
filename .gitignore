@@ -1,0 +1,14 @@
+# dependencies
+node_modules/
+.venv/
+
+# env
+.env
+.env.local
+
+# large media
+*.mov
+*.mp4
+
+# misc
+.DS_Store
