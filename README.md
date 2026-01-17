@@ -119,7 +119,7 @@ docs/
 
 litellm-config.yaml
 ```
-
+---
 
 ## 🖼️ Screenshots
 
