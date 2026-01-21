@@ -10,7 +10,7 @@ export type ModelMetaRow = {
     { model: "openai/gpt-4.1-mini", context: "128k", inputCost: 0.30, outputCost: 1.20 },
   
     // Add more later if you want (still mock)
-    { model: "anthropic/claude-3.5-sonnet", context: "200k", inputCost: 3.00, outputCost: 15.00 },
+   // { model: "anthropic/claude-3.5-sonnet", context: "200k", inputCost: 3.00, outputCost: 15.00 },
     { model: "google/gemini-1.5-flash", context: "1M", inputCost: 0.08, outputCost: 0.30 },
   ];
   

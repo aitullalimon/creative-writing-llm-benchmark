@@ -2,21 +2,13 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
-/**
- * We keep parsing intentionally simple (no extra deps).
- * Supports:
- * - model_list entries: model_name: xxx
- * - optional model_info block (recommended) to supply context/pricing
- *
- * If model_info is missing, we still return the model list.
- */
 type ConfigModel = {
-  model: string;                 // e.g. openai/gpt-4o-mini
-  context?: string;              // e.g. 128k
-  inputCost?: number;            // $ / 1M
-  outputCost?: number;           // $ / 1M
-  speed?: number;                // tokens/sec (optional)
-  latency?: number;              // seconds (optional)
+  model: string;      // e.g. openai/gpt-4o-mini
+  context?: string;   // e.g. 128k
+  inputCost?: number; // $ / 1M
+  outputCost?: number;// $ / 1M
+  speed?: number;     // tokens/sec (optional)
+  latency?: number;   // seconds (optional)
 };
 
 function readLitellmConfigText(): string {
@@ -25,7 +17,6 @@ function readLitellmConfigText(): string {
   return fs.readFileSync(p, "utf8");
 }
 
-// Very small YAML-ish extraction (good enough for demo config)
 function extractModelList(yamlText: string): string[] {
   const lines = yamlText.split("\n");
   const models: string[] = [];
@@ -39,38 +30,22 @@ function extractModelList(yamlText: string): string[] {
       continue;
     }
 
-    // if we hit a new top-level key, stop
-    if (inModelList && /^[a-zA-Z0-9_]+\s*:/.test(line) && !line.startsWith("-")) {
-      // allow "  - model_name" lines, but stop on other top-level keys
-      if (!line.startsWith("model_name:") && !line.includes("model_name:")) {
-        // still could be nested, but for our simple demo we stop.
-      }
-    }
-
     if (!inModelList) continue;
 
     // match: - model_name: openai/gpt-4o-mini
     const m = raw.match(/model_name:\s*([^\s#]+)/);
     if (m?.[1]) models.push(m[1]);
+
+    // stop if we hit another top-level key after model_list
+    if (inModelList && /^[a-zA-Z0-9_]+\s*:/.test(line) && !line.startsWith("-") && !line.includes("model_name:")) {
+      // very simple stop condition (good enough here)
+      // (we don't "break" because model_list might be followed by nested keys)
+    }
   }
 
-  // unique
   return Array.from(new Set(models));
 }
 
-/**
- * Optional recommended config format in litellm-config.yaml:
- *
- * model_info:
- *   openai/gpt-4o-mini:
- *     context: 128k
- *     input_cost: 0.15
- *     output_cost: 0.6
- *     speed: 250
- *     latency: 0.9
- *
- * (You can add these for demo pricing/context.)
- */
 function extractModelInfo(yamlText: string): Record<string, Partial<ConfigModel>> {
   const out: Record<string, Partial<ConfigModel>> = {};
   const lines = yamlText.split("\n");
@@ -91,7 +66,6 @@ function extractModelInfo(yamlText: string): Record<string, Partial<ConfigModel>
 
     // Stop if we reach another top-level key
     if (/^[a-zA-Z0-9_]+\s*:/.test(line) && !/^\s+/.test(line)) {
-      // top-level key
       if (!/^\s*model_info\s*:/.test(line)) break;
     }
 
@@ -121,6 +95,12 @@ function extractModelInfo(yamlText: string): Record<string, Partial<ConfigModel>
   return out;
 }
 
+function isSupportedModelForThisBuild(model: string) {
+  // You said you don't have Anthropic key. So we *only* allow OpenAI here.
+  // This prevents the UI from ever showing Claude and breaking benchmarks.
+  return model.startsWith("openai/");
+}
+
 export async function GET() {
   const yamlText = readLitellmConfigText();
   if (!yamlText) {
@@ -130,7 +110,7 @@ export async function GET() {
     );
   }
 
-  const list = extractModelList(yamlText);
+  const list = extractModelList(yamlText).filter(isSupportedModelForThisBuild);
   const info = extractModelInfo(yamlText);
 
   const models: ConfigModel[] = list.map((m) => ({
