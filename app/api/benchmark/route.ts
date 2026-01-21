@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { runBenchmark } from "@/lib/bench";
 
 type Scores = {
   character_clarity: number;
@@ -10,6 +9,11 @@ type Scores = {
 };
 
 type ChatMsg = { role: "system" | "user" | "assistant"; content: string };
+
+function normalizeModel(raw: string) {
+  // UI might send "openai/gpt-4o-mini" -> OpenAI expects "gpt-4o-mini"
+  return raw.includes("/") ? raw.split("/").pop()! : raw;
+}
 
 function mockScores(seed: number): Scores {
   const a = 6 + (seed % 5);
@@ -75,33 +79,35 @@ function mockOutput(model: string, prompt: string) {
   );
 }
 
-/** LiteLLM chat helper (judge call only) */
-async function litellmChat(model: string, messages: ChatMsg[]) {
-  const base = process.env.LITELLM_BASE_URL;
-  const key = process.env.LITELLM_MASTER_KEY;
-
-  if (!base || !key) {
-    throw new Error("Missing LITELLM_BASE_URL or LITELLM_MASTER_KEY in env.");
+/** Direct OpenAI chat helper (NO LiteLLM) */
+async function openaiChat(modelRaw: string, messages: ChatMsg[], temperature: number) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("Missing OPENAI_API_KEY in Vercel environment variables");
   }
 
-  const res = await fetch(`${base}/v1/chat/completions`, {
+  const model = normalizeModel(modelRaw);
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${key}`,
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model,
       messages,
-      temperature: 0, // judge should be stable
+      temperature,
     }),
   });
 
+  const data = await res.json().catch(() => ({}));
+
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`LiteLLM error ${res.status}: ${text}`);
+    throw new Error(`OpenAI error ${res.status}: ${JSON.stringify(data)}`);
   }
-  return res.json();
+
+  return data;
 }
 
 function themeJudgePrompt(prompt: string, output: string) {
@@ -129,10 +135,14 @@ Return JSON ONLY:
 }
 
 async function judgeThemeCoherence(judgeModel: string, prompt: string, output: string) {
-  const data = await litellmChat(judgeModel, [
-    { role: "system", content: "Return JSON only. No markdown." },
-    { role: "user", content: themeJudgePrompt(prompt, output) },
-  ]);
+  const data = await openaiChat(
+    judgeModel || "gpt-4o-mini",
+    [
+      { role: "system", content: "Return JSON only. No markdown." },
+      { role: "user", content: themeJudgePrompt(prompt, output) },
+    ],
+    0 // judge should be stable
+  );
 
   const rawText = (data?.choices?.[0]?.message?.content ?? "").trim();
 
@@ -151,10 +161,7 @@ async function judgeThemeCoherence(judgeModel: string, prompt: string, output: s
 }
 
 function mapThemeToScores(theme_coherence_0_10: number): Scores {
-  // Convert 0..10 to 0..40 (as your UI expects total 0..40)
   const total = Math.round(theme_coherence_0_10 * 4);
-
-  // Keep fields for UI compatibility. You can later replace these with real sub-metrics if desired.
   return {
     character_clarity: total,
     originality: total,
@@ -169,7 +176,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const prompt = String(body?.prompt || "");
     const models = Array.isArray(body?.models) ? body.models.map(String) : [];
-    const judgeModel = String(body?.judgeModel || "");
+    const judgeModel = String(body?.judgeModel || process.env.JUDGE_MODEL || "gpt-4o-mini");
 
     if (!prompt || models.length === 0) {
       return NextResponse.json({ error: "Missing prompt or models" }, { status: 400 });
@@ -178,12 +185,12 @@ export async function POST(req: Request) {
     const isMock = String(process.env.MOCK_MODE || "false").toLowerCase() === "true";
 
     // -----------------------------
-    // MOCK MODE — NO LITELLM CALLS
+    // MOCK MODE — NO API CALLS
     // -----------------------------
     if (isMock) {
       const results = models.map((model, index) => {
         const output = mockOutput(model, prompt);
-        const scores = mockScores(index + prompt.length); // keep old mock scoring for mock mode
+        const scores = mockScores(index + prompt.length);
         return {
           model,
           output,
@@ -194,28 +201,35 @@ export async function POST(req: Request) {
 
       results.sort((a, b) => b.scores.total - a.scores.total);
 
-      return NextResponse.json({
-        mode: "mock",
-        results,
-      });
+      return NextResponse.json({ mode: "mock", results });
     }
 
     // ---------------------------------------
-    // REAL MODE — Theme Coherence via Judge
+    // REAL MODE — generate outputs via OpenAI
     // ---------------------------------------
-    // We will generate outputs using your existing runBenchmark()
-    // and then override scores using LLM-as-a-judge coherence.
-    const generated = await runBenchmark(models, prompt);
+    const generated: { model: string; output: string; latency_ms: number }[] = [];
 
+    for (const modelRaw of models) {
+      const t0 = Date.now();
+      const data = await openaiChat(
+        modelRaw,
+        [{ role: "user", content: prompt }],
+        body?.temperature ?? 0.7
+      );
+      const output = data?.choices?.[0]?.message?.content ?? "";
+      generated.push({ model: modelRaw, output, latency_ms: Date.now() - t0 });
+    }
+
+    // ---------------------------------------
+    // Judge theme coherence via OpenAI judge
+    // ---------------------------------------
     const judgedResults = [];
     for (const r of generated) {
-      // Judge theme coherence on the generated output
       let scores: Scores;
       try {
-        const judged = await judgeThemeCoherence(judgeModel || process.env.JUDGE_MODEL || "openai/gpt-4o-mini", prompt, r.output);
+        const judged = await judgeThemeCoherence(judgeModel, prompt, r.output);
         scores = mapThemeToScores(judged.theme_coherence);
       } catch {
-        // fallback if judge fails (keeps system stable)
         scores = mockScores(hashSeed(r.model + prompt));
       }
 
@@ -225,7 +239,6 @@ export async function POST(req: Request) {
       });
     }
 
-    // sort by best total score
     judgedResults.sort((a, b) => (b.scores?.total ?? 0) - (a.scores?.total ?? 0));
 
     return NextResponse.json({
@@ -233,6 +246,6 @@ export async function POST(req: Request) {
       results: judgedResults,
     });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || "Server error" }, { status: 500 });
+    return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
   }
 }
