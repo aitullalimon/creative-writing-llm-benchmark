@@ -197,7 +197,9 @@ export default function LeaderboardPage() {
       </div>
 
       {/* ✅ NEW: Theme Coherence visualization (like your image) */}
-      <ThemeCoherenceLineChart runs={runs} judgeModel={runs[0]?.judgeModel} />
+      <ThemeCoherenceLineChart runs={runs} />
+
+
 
 
 
