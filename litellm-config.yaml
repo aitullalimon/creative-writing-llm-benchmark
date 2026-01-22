@@ -9,6 +9,10 @@ model_list:
       model: gpt-4.1-mini
       api_key: os.environ/OPENAI_API_KEY
 
+  - model_name: anthropic/claude-3-5-sonnet
+    litellm_params:
+      model: claude-3-5-sonnet
+      api_key: os.environ/ANTHROPIC_API_KEY
 
 # Unified metadata block (used by /api/config-models UI)
 model_info:
@@ -25,3 +29,10 @@ model_info:
     output_cost: 1.2
     speed: 210
     latency: 1.1
+
+  anthropic/claude-3-5-sonnet:
+    context: 200k
+    input_cost: 3.0
+    output_cost: 15.0
+    speed: 140
+    latency: 1.5
