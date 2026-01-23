@@ -1,20 +1,20 @@
 model_list:
   - model_name: openai/gpt-4o-mini
     litellm_params:
-      model: gpt-4o-mini
+      model: openai/gpt-4o-mini
       api_key: os.environ/OPENAI_API_KEY
 
   - model_name: openai/gpt-4.1-mini
     litellm_params:
-      model: gpt-4.1-mini
+      model: openai/gpt-4.1-mini
       api_key: os.environ/OPENAI_API_KEY
 
   - model_name: anthropic/claude-3-5-sonnet
     litellm_params:
-      model: claude-3-5-sonnet
+      model: anthropic/claude-3-5-sonnet
       api_key: os.environ/ANTHROPIC_API_KEY
 
-# Unified metadata block (used by /api/config-models UI)
+# Used by your Next.js /api/config-models parser (your UI metadata)
 model_info:
   openai/gpt-4o-mini:
     context: 128k

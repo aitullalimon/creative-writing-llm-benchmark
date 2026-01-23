@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: litellm-proxy
+    env: docker
+    dockerfilePath: Dockerfile.litellm
+    plan: free
+    autoDeploy: true

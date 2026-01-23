@@ -3,6 +3,7 @@
 export const MODELS = [
     { label: "OpenAI · GPT-4o Mini", value: "openai/gpt-4o-mini" },
     { label: "OpenAI · GPT-4.1 Mini", value: "openai/gpt-4.1-mini" },
+    { label: "Anthropic · Claude 3.5 Sonnet", value: "anthropic/claude-3-5-sonnet" },
   ];
   
   export type Scores = {

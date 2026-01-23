@@ -1,0 +1,12 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir "litellm[proxy]"
+
+COPY litellm-config.yaml /app/litellm-config.yaml
+
+ENV PORT=4000
+EXPOSE 4000
+
+CMD ["sh", "-c", "litellm --config /app/litellm-config.yaml --host 0.0.0.0 --port ${PORT}"]
